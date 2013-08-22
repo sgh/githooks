@@ -1,0 +1,69 @@
+#!/usr/bin/python
+ # -*- coding: utf8 -*-
+import sys   # system stuff
+import re    # Regular expressions
+import commands
+
+# Match Signed-off-by: string
+regex = re.compile("[\W\w\s]*Signed-off-by:[ ]+.+[ ]*<.+@.+>");
+
+# args[old, new, ref]
+args = sys.stdin.readline().split();
+old_sha1 = args[0]
+new_sha1 = args[1]
+
+invalid_commit_found = False
+non_fast_forward = False
+
+' Verifies that a specific commit contains a Signed-off-by: line '
+def verify_commit(sha1):
+	global invalid_commit_found
+	commitmsg = commands.getoutput("git cat-file commit %s" % sha1)
+	m = regex.match(commitmsg)
+	if  m == None:
+		if not invalid_commit_found:
+			print ""
+			print "Commits on %s *MUST* be signed off by another developer" % args[2]
+			print "For merges, only the actual merge needs review."
+			print ""
+			print "The following commits needs review:"
+			invalid_commit_found = True
+		print "    " + commands.getoutput("git log --oneline -n 1 %s" % sha1)
+
+# Only top refs/heads/XXXXXX branches must be checked.
+# Branches like refs/heads/sgh/mytemporarybranch does not need to be checked
+if len(args[2].split("/")) > 3:
+	sys.exit(0)
+
+##
+# Now do the check in the top branches
+##
+
+## First we need to fetch the received commits
+if new_sha1 != "0000000000000000000000000000000000000000":
+	excludingrefs = commands.getoutput("git for-each-ref --format '^%(refname:short)' 'refs/heads/*'").replace('\n',' ')
+
+	# Do not check branch deletes
+	if old_sha1 == "0000000000000000000000000000000000000000":
+		# New branches does not have an old revision, so we have to check on all refs
+		commitlist = commands.getoutput("git rev-list --first-parent  %s %s" % (new_sha1, excludingrefs)).split()
+	else:
+		commitlist = commands.getoutput("git rev-list --first-parent %s..%s" % (args[0], args[1])).split()
+
+## Run through the commits and check commit message rules
+for sha1 in commitlist:
+	verify_commit(sha1)
+
+if invalid_commit_found:
+	print "\nAll commits require must contain 'Signed-by-by: User Name <user@doamin>'\n"
+
+## Check for non fast-forward
+if new_sha1 != "0000000000000000000000000000000000000000" and old_sha1 != "0000000000000000000000000000000000000000":
+	missed_refs = commands.getoutput("git rev-list %s..%s" % (new_sha1, old_sha1)).split()
+	if len(missed_refs) > 0:
+		print "\nNon-fast-forward commits are only allowed in private branches."
+		print "%s is not a private branch.\n" % args[2]
+		non_fast_forward = True
+
+# Success
+sys.exit(invalid_commit_found or non_fast_forward)
