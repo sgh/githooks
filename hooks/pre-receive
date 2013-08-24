@@ -13,7 +13,6 @@ old_sha1 = args[0]
 new_sha1 = args[1]
 
 invalid_commit_found = False
-non_fast_forward = False
 
 ' Verifies that a specific commit contains a Signed-off-by: line '
 def verify_commit(sha1):
@@ -39,6 +38,14 @@ if len(args[2].split("/")) > 3:
 # Now do the check in the top branches
 ##
 
+## Check for non fast-forward
+if new_sha1 != "0000000000000000000000000000000000000000" and old_sha1 != "0000000000000000000000000000000000000000":
+	missed_refs = commands.getoutput("git rev-list %s..%s" % (new_sha1, old_sha1)).split()
+	if len(missed_refs) > 0:
+		print "\nNon-fast-forward commits are only allowed in private branches."
+		print "%s is not a private branch.\n" % args[2]
+		sys.exit(1)
+
 commitlist = []
 
 ## First we need to fetch the received commits
@@ -59,13 +66,6 @@ for sha1 in commitlist:
 if invalid_commit_found:
 	print "\nAll commits require must contain 'Signed-by-by: User Name <user@doamin>'\n"
 
-## Check for non fast-forward
-if new_sha1 != "0000000000000000000000000000000000000000" and old_sha1 != "0000000000000000000000000000000000000000":
-	missed_refs = commands.getoutput("git rev-list %s..%s" % (new_sha1, old_sha1)).split()
-	if len(missed_refs) > 0:
-		print "\nNon-fast-forward commits are only allowed in private branches."
-		print "%s is not a private branch.\n" % args[2]
-		non_fast_forward = True
 
 # Success
-sys.exit(invalid_commit_found or non_fast_forward)
+sys.exit(invalid_commit_found)
