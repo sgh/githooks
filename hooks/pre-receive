@@ -64,7 +64,7 @@ for sha1 in commitlist:
 	verify_commit(sha1)
 
 if invalid_commit_found:
-	print "\nAll commits require must contain 'Signed-by-by: User Name <user@doamin>'\n"
+	print "\nAll commits require must contain 'Signed-by-by: User Name <user@domain>'\n"
 
 
 # Success
