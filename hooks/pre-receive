@@ -56,7 +56,7 @@ if new_sha1 != "0000000000000000000000000000000000000000":
 		# New branches does not have an old revision, so we have to check on all refs
 		commitlist = commands.getoutput("git rev-list --first-parent  %s %s" % (new_sha1, excludingrefs)).split()
 	else:
-		commitlist = commands.getoutput("git rev-list --first-parent %s..%s" % (args[0], args[1])).split()
+		commitlist = commands.getoutput("git rev-list --first-parent %s..%s" % (old_sha1, new_sha1)).split()
 
 	## Run through the commits and check commit message rules
 	for sha1 in commitlist:
