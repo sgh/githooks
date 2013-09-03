@@ -70,13 +70,17 @@ initializeRepos()
 os.chdir(localdir)
 
 # Create initial commit without Signed-off-by
-runCommand("git commit -m 'Initial commit' --allow-empty", 0)
+runCommand("git commit -m '[SM-] Initial commit' --allow-empty", 0)
 
 # check that it can not be pushed
 runCommand("git push origin -u master", 256)
 
-# Check that adding the Signed-off-by allows the commit to be pushed
+# Check that adding the Signed-off-by still not allows the commit to be pushed
 runCommand("git commit --amend -s --no-edit --allow-empty", 0)
+runCommand("git push origin -u master", 256)
+
+# Check that adding an issue number allow it to be pushed
+runCommand("git commit --amend -s --allow-empty -m '[SM-9] Initial commit'", 0)
 runCommand("git push origin -u master", 0)
 
 # Test that master can not be removed
@@ -90,7 +94,7 @@ runCommand("git checkout -b test-private", 0)
 # Test branch creation
 runCommand("git push origin HEAD:user/new_branch", 0)
 
-# Test branch fast-forward of commit without Signed-off-by
+# Test branch fast-forward of commit without Signed-off-by and JIRA-issue
 runCommand("git commit -m 'Some change' --allow-empty", 0)
 runCommand("git push origin HEAD:user/new_branch", 0)
 
@@ -112,20 +116,28 @@ runCommand("git push    origin HEAD:new_branch", 256)
 runCommand("git push -f origin HEAD:new_branch", 256)
 
 # Test that Signed-off-by commit can be pushed
-runCommand("git commit --amend -s --no-edit --allow-empty", 0)
+runCommand("git commit --amend -s --allow-empty -m 'commit with signed-off [SM-12345]'", 0)
 runCommand("git push    origin HEAD:new_branch", 0)
 
-# Test that a normal branch merge can not be pushed
+# Test that a normal branch merge with missing JIRA-issue can not be pushed
 runCommand("git checkout -b feature", 0)
-runCommand("git commit -m 'commit without signed-off' --allow-empty", 0)
-runCommand("git commit -m 'commit without signed-off' --allow-empty", 0)
-runCommand("git commit -m 'commit without signed-off' --allow-empty", 0)
-runCommand("git commit -m 'commit without signed-off' --allow-empty", 0)
+runCommand("git commit -m '[SM-0] commit1 without signed-off' --allow-empty", 0)
+runCommand("git commit -m 'commit2 [SM-01] without signed-off' --allow-empty", 0)
+runCommand("git commit -m 'commit3 without [SM-012] signed-off' --allow-empty", 0)
+runCommand("git commit -m 'commit4 without signed-off' --allow-empty", 0)
 runCommand("git checkout test-public", 0)
 runCommand("git merge --no-ff feature", 0)
 runCommand("git push    origin HEAD:new_branch", 256)
 
-# Test that a Signed-off merge can not be pushed
+# Test that fixing the missing JIRA-issue make the branch merge and push
+runCommand("git reset --hard HEAD~1", 0)
+runCommand("git checkout feature", 0)
+runCommand("git commit -m 'commit4 without signed-off [SM-0123]' --allow-empty --amend", 0)
+runCommand("git checkout test-public", 0)
+runCommand("git merge --no-ff feature", 0)
+runCommand("git push    origin HEAD:new_branch", 256)
+
+# Test that a Signed-off merge can be pushed
 runCommand("git commit --amend -s --no-edit", 0)
 runCommand("git push    origin HEAD:new_branch", 0)
 
