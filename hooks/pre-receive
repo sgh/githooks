@@ -46,7 +46,6 @@ if new_sha1 != "0000000000000000000000000000000000000000" and old_sha1 != "00000
 		print "%s is not a private branch.\n" % args[2]
 		sys.exit(1)
 
-commitlist = []
 
 ## First we need to fetch the received commits
 if new_sha1 != "0000000000000000000000000000000000000000":
@@ -59,9 +58,9 @@ if new_sha1 != "0000000000000000000000000000000000000000":
 	else:
 		commitlist = commands.getoutput("git rev-list --first-parent %s..%s" % (args[0], args[1])).split()
 
-## Run through the commits and check commit message rules
-for sha1 in commitlist:
-	verify_commit(sha1)
+	## Run through the commits and check commit message rules
+	for sha1 in commitlist:
+		verify_commit(sha1)
 
 if invalid_commit_found:
 	print "\nAll commits require must contain 'Signed-by-by: User Name <user@domain>'\n"
