@@ -5,7 +5,10 @@ import re    # Regular expressions
 import commands
 
 # Match Signed-off-by: string
-regex = re.compile("[\W\w\s]*Signed-off-by:[ ]+.+[ ]*<.+@.+>");
+review_regex = "[\W\w\s]*Signed-off-by:[ ]+.+[ ]*<.+@.+>"
+
+# Match JIRA-number
+jira_regex = ".*[A-Z]+-[0-9]+.*"
 
 # args[old, new, ref]
 args = sys.stdin.readline().split();
@@ -13,12 +16,13 @@ old_sha1 = args[0]
 new_sha1 = args[1]
 
 invalid_commit_found = False
+missing_jira_found = False
 
 ' Verifies that a specific commit contains a Signed-off-by: line '
-def verify_commit(sha1):
+def verify_review(sha1):
 	global invalid_commit_found
 	commitmsg = commands.getoutput("git cat-file commit %s" % sha1)
-	m = regex.match(commitmsg)
+	m = re.search(review_regex, commitmsg)
 	if  m == None:
 		if not invalid_commit_found:
 			print ""
@@ -28,6 +32,21 @@ def verify_commit(sha1):
 			print "The following commits needs review:"
 			invalid_commit_found = True
 		print "    " + commands.getoutput("git log --oneline -n 1 %s" % sha1)
+
+' Verifies that a specific commit contains a JIRA-number - [PROJECT-NUMBER]'
+def verify_jira(sha1):
+	global missing_jira_found
+	commitmsg = commands.getoutput("git cat-file commit %s" % sha1)
+	m = re.search(jira_regex, commitmsg)
+	if  m == None:
+		if not missing_jira_found:
+			print ""
+			print "Commits on %s *MUST* contain a valid JIRA-number " % args[2]
+			print ""
+			print "The following commits needs JIRA-numbers:"
+			missing_jira_found = True
+		print "    " + commands.getoutput("git log --oneline -n 1 %s" % sha1)
+
 
 # Only top refs/heads/XXXXXX branches must be checked.
 # Branches like refs/heads/sgh/mytemporarybranch does not need to be checked
@@ -54,17 +73,22 @@ if new_sha1 != "0000000000000000000000000000000000000000":
 	# Do not check branch deletes
 	if old_sha1 == "0000000000000000000000000000000000000000":
 		# New branches does not have an old revision, so we have to check on all refs
-		commitlist = commands.getoutput("git rev-list --first-parent  %s %s" % (new_sha1, excludingrefs)).split()
+		firstparent_commits = commands.getoutput("git rev-list --first-parent  %s %s" % (new_sha1, excludingrefs)).split()
+		singleparent_commits = commands.getoutput("git rev-list --no-merges  %s %s" % (new_sha1, excludingrefs)).split()
 	else:
-		commitlist = commands.getoutput("git rev-list --first-parent %s..%s" % (old_sha1, new_sha1)).split()
+		firstparent_commits = commands.getoutput("git rev-list --first-parent %s..%s" % (old_sha1, new_sha1)).split()
+		singleparent_commits = commands.getoutput("git rev-list --no-merges %s..%s" % (old_sha1, new_sha1)).split()
 
 	## Run through the commits and check commit message rules
-	for sha1 in commitlist:
-		verify_commit(sha1)
+	for sha1 in firstparent_commits:
+		verify_review(sha1)
+
+	for sha1 in singleparent_commits:
+		verify_jira(sha1)
 
 if invalid_commit_found:
 	print "\nAll commits require must contain 'Signed-by-by: User Name <user@domain>'\n"
 
 
 # Success
-sys.exit(invalid_commit_found)
+sys.exit(invalid_commit_found | missing_jira_found)
