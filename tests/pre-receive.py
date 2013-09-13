@@ -1,8 +1,8 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # -*- coding: utf8 -*-
 import os, errno
 import sys   # system stuff
-import commands
+import subprocess
 import atexit
 
 
@@ -11,11 +11,18 @@ localdir  = "LOCAL"
 rootdir = ""
 
 def runCommand(cmd,expected_returncode):
-	retval = commands.getstatusoutput(cmd)
-	print "CMD: " + cmd
-	if retval[0] != expected_returncode:
-		print retval[1]
-		print "RETVAL: %d" % retval[0]
+	retval = 0
+	output = None
+	try:
+		output = subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True)
+	except subprocess.CalledProcessError as e:
+		retval = e.returncode
+		output = e.output
+
+	print( "CMD: " + cmd )
+	if retval != expected_returncode:
+		print( output )
+		print( "RETVAL: %d != %d" % (retval, expected_returncode) )
 		sys.exit(1)
 
 def rm_rf(d):
@@ -73,18 +80,18 @@ os.chdir(localdir)
 runCommand("git commit -m '[SM-] Initial commit' --allow-empty", 0)
 
 # check that it can not be pushed
-runCommand("git push origin -u master", 256)
+runCommand("git push origin -u master", 1)
 
 # Check that adding the Signed-off-by still not allows the commit to be pushed
 runCommand("git commit --amend -s --no-edit --allow-empty", 0)
-runCommand("git push origin -u master", 256)
+runCommand("git push origin -u master", 1)
 
 # Check that adding an issue number allow it to be pushed
 runCommand("git commit --amend -s --allow-empty -m '[SM-9] Initial commit'", 0)
 runCommand("git push origin -u master", 0)
 
 # Test that master can not be removed
-runCommand("git push origin :master", 256)
+runCommand("git push origin :master", 1)
 
 # Create branches for tests
 runCommand("git checkout -b test-public", 0)
@@ -99,7 +106,7 @@ runCommand("git commit -m 'Some change' --allow-empty", 0)
 runCommand("git push origin HEAD:user/new_branch", 0)
 
 # Test branch rewind
-runCommand("git push    origin HEAD~1:user/new_branch", 256)
+runCommand("git push    origin HEAD~1:user/new_branch", 1)
 runCommand("git push -f origin HEAD~1:user/new_branch", 0)
 
 # Test branch deletion
@@ -112,8 +119,8 @@ runCommand("git checkout test-public", 0)
 # Test that commits without Signed-off-by can not be pushed
 runCommand("git push origin HEAD:new_branch", 0)
 runCommand("git commit -m 'commit without signed-off' --allow-empty", 0)
-runCommand("git push    origin HEAD:new_branch", 256)
-runCommand("git push -f origin HEAD:new_branch", 256)
+runCommand("git push    origin HEAD:new_branch", 1)
+runCommand("git push -f origin HEAD:new_branch", 1)
 
 # Test that Signed-off-by commit can be pushed
 runCommand("git commit --amend -s --allow-empty -m 'commit with signed-off [SM-12345]'", 0)
@@ -127,7 +134,7 @@ runCommand("git commit -m 'commit3 without [SM-012] signed-off' --allow-empty", 
 runCommand("git commit -m 'commit4 without signed-off' --allow-empty", 0)
 runCommand("git checkout test-public", 0)
 runCommand("git merge --no-edit --no-ff feature", 0)
-runCommand("git push    origin HEAD:new_branch", 256)
+runCommand("git push    origin HEAD:new_branch", 1)
 
 # Test that fixing the missing JIRA-issue make the branch merge and push
 runCommand("git reset --hard HEAD~1", 0)
@@ -135,7 +142,7 @@ runCommand("git checkout feature", 0)
 runCommand("git commit -m 'commit4 without signed-off [SM-0123]' --allow-empty --amend", 0)
 runCommand("git checkout test-public", 0)
 runCommand("git merge --no-edit --no-ff feature", 0)
-runCommand("git push    origin HEAD:new_branch", 256)
+runCommand("git push    origin HEAD:new_branch", 1)
 
 # Test that a Signed-off merge can be pushed
 runCommand("git commit --amend -s --no-edit", 0)
@@ -143,12 +150,12 @@ runCommand("git push    origin HEAD:new_branch", 0)
 
 # Test that branch rewind is not possible
 runCommand("git reset --hard HEAD~1", 0)
-runCommand("git push origin HEAD:new_branch", 256)
-runCommand("git push -f origin HEAD:new_branch", 256)
+runCommand("git push origin HEAD:new_branch", 1)
+runCommand("git push -f origin HEAD:new_branch", 1)
 
 # Test that delete-crete rewind is possible
 runCommand("git push    origin :new_branch", 0)
 runCommand("git push -f origin HEAD:new_branch", 0)
 
-print "Tests passed."
+print( "Tests passed." )
 sys.exit(0)
