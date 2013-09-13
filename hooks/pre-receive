@@ -25,11 +25,11 @@ def verify_review(sha1):
 	m = re.search(review_regex, commitmsg)
 	if  m == None:
 		if not invalid_commit_found:
-			print ""
-			print "Commits on %s *MUST* be signed off by another developer" % args[2]
-			print "For merges, only the actual merge needs review."
-			print ""
-			print "The following commits needs review:"
+			print( "" )
+			print( "Commits on %s *MUST* be signed off by another developer" % args[2] )
+			print( "For merges, only the actual merge needs review." )
+			print( "" )
+			print( "The following commits needs review:" )
 			invalid_commit_found = True
 		print "    " + commands.getoutput("git log --oneline -n 1 %s" % sha1)
 
@@ -40,10 +40,10 @@ def verify_jira(sha1):
 	m = re.search(jira_regex, commitmsg)
 	if  m == None:
 		if not missing_jira_found:
-			print ""
-			print "Commits on %s *MUST* contain a valid JIRA-number " % args[2]
-			print ""
-			print "The following commits needs JIRA-numbers:"
+			print( "" )
+			print( "Commits on %s *MUST* contain a valid JIRA-number " % args[2] )
+			print( "" )
+			print( "The following commits needs JIRA-numbers:" )
 			missing_jira_found = True
 		print "    " + commands.getoutput("git log --oneline -n 1 %s" % sha1)
 
@@ -61,8 +61,8 @@ if len(args[2].split("/")) > 3:
 if new_sha1 != "0000000000000000000000000000000000000000" and old_sha1 != "0000000000000000000000000000000000000000":
 	missed_refs = commands.getoutput("git rev-list %s..%s" % (new_sha1, old_sha1)).split()
 	if len(missed_refs) > 0:
-		print "\nNon-fast-forward commits are only allowed in private branches."
-		print "%s is not a private branch.\n" % args[2]
+		print( "\nNon-fast-forward commits are only allowed in private branches." )
+		print( "%s is not a private branch.\n" % args[2] )
 		sys.exit(1)
 
 
@@ -87,7 +87,7 @@ if new_sha1 != "0000000000000000000000000000000000000000":
 		verify_jira(sha1)
 
 if invalid_commit_found:
-	print "\nAll commits require must contain 'Signed-by-by: User Name <user@domain>'\n"
+	print( "\nAll commits require must contain 'Signed-by-by: User Name <user@domain>'\n" )
 
 
 # Success
