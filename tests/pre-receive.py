@@ -82,23 +82,23 @@ runCommand("git commit -m '[SM-] Initial commit' --allow-empty", 0)
 # check that it can not be pushed
 runCommand("git push origin -u master", 1)
 
-# Check that adding the Signed-off-by still not allows the commit to be pushed
-runCommand("git commit --amend -s --no-edit --allow-empty", 0)
+# Check that adding the Reviewed-by still not allows the commit to be pushed
+runCommand("git commit --amend --allow-empty -m '[SM-] Initial commit\n\nReviewed-by: John Doe <john@doe.com>'", 0)
 runCommand("git push origin -u master", 1)
 
-# Check that adding an issue number allow it to be pushed
-runCommand("git commit --amend -s --allow-empty -m '[SM-9] Initial commit'", 0)
+## Check that adding an issue number allow it to be pushed
+runCommand("git commit --amend --allow-empty -m '[SM-9] Initial commit\n\nReviewed-by: John Doe <john@doe.com>'", 0)
 runCommand("git push origin -u master", 0)
 
-# Test that master can not be removed
+## Test that master can not be removed
 runCommand("git push origin :master", 1)
 
-# Create branches for tests
+## Create branches for tests
 runCommand("git checkout -b test-public", 0)
 runCommand("git checkout -b test-private", 0)
 
-### Test that we can do what ever we want in private branches
-# Test branch creation
+## Test that we can do what ever we want in private branches
+## Test branch creation
 runCommand("git push origin HEAD:user/new_branch", 0)
 
 # Test branch fast-forward of commit without Signed-off-by and JIRA-issue
@@ -109,7 +109,7 @@ runCommand("git push origin HEAD:user/new_branch", 0)
 runCommand("git push    origin HEAD~1:user/new_branch", 1)
 runCommand("git push -f origin HEAD~1:user/new_branch", 0)
 
-# Test branch deletion
+## Test branch deletion
 runCommand("git push origin :user/new_branch", 0)
 
 
@@ -118,20 +118,20 @@ runCommand("git checkout test-public", 0)
 
 # Test that commits without Signed-off-by can not be pushed
 runCommand("git push origin HEAD:new_branch", 0)
-runCommand("git commit -m 'commit without signed-off' --allow-empty", 0)
+runCommand("git commit -m 'commit without reviewed-by' --allow-empty", 0)
 runCommand("git push    origin HEAD:new_branch", 1)
 runCommand("git push -f origin HEAD:new_branch", 1)
 
-# Test that Signed-off-by commit can be pushed
-runCommand("git commit --amend -s --allow-empty -m 'commit with signed-off [SM-12345]'", 0)
+# Test that Reviwed-by commit can be pushed
+runCommand("git commit --amend --allow-empty -m 'commit with reviewed-by [SM-12345]\n\nReviewed-by: John Doe <john@doe.com>'", 0)
 runCommand("git push    origin HEAD:new_branch", 0)
 
 # Test that a normal branch merge with missing JIRA-issue can not be pushed
 runCommand("git checkout -b feature", 0)
-runCommand("git commit -m '[SM-0] commit1 without signed-off' --allow-empty", 0)
-runCommand("git commit -m 'commit2 [SM-01] without signed-off' --allow-empty", 0)
-runCommand("git commit -m 'commit3 without [SM-012] signed-off' --allow-empty", 0)
-runCommand("git commit -m 'commit4 without signed-off' --allow-empty", 0)
+runCommand("git commit -m '[SM-0] commit1 without reviewed-by' --allow-empty", 0)
+runCommand("git commit -m 'commit2 [SM-01] without reviewed-by' --allow-empty", 0)
+runCommand("git commit -m 'commit3 without [SM-012] reviewed-by' --allow-empty", 0)
+runCommand("git commit -m 'commit4 without reviewed-by' --allow-empty", 0)
 runCommand("git checkout test-public", 0)
 runCommand("git merge --no-edit --no-ff feature", 0)
 runCommand("git push    origin HEAD:new_branch", 1)
@@ -139,13 +139,13 @@ runCommand("git push    origin HEAD:new_branch", 1)
 # Test that fixing the missing JIRA-issue make the branch merge and push
 runCommand("git reset --hard HEAD~1", 0)
 runCommand("git checkout feature", 0)
-runCommand("git commit -m 'commit4 without signed-off [SM-0123]' --allow-empty --amend", 0)
+runCommand("git commit -m 'commit4 without reviewed-by [SM-0123]' --allow-empty --amend", 0)
 runCommand("git checkout test-public", 0)
 runCommand("git merge --no-edit --no-ff feature", 0)
 runCommand("git push    origin HEAD:new_branch", 1)
 
 # Test that a Signed-off merge can be pushed
-runCommand("git commit --amend -s --no-edit", 0)
+runCommand("git commit --amend --no-edit -m 'commit4 without reviewed-by [SM-0123]\n\nReviewed-by: John Doe <john@doe.com>'", 0)
 runCommand("git push    origin HEAD:new_branch", 0)
 
 # Test that branch rewind is not possible

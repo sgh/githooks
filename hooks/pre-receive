@@ -4,8 +4,11 @@ import sys   # system stuff
 import re    # Regular expressions
 import commands
 
-# Match Signed-off-by: string
-review_regex = "[\W\w\s]*Signed-off-by:[ ]+.+[ ]*<.+@.+>"
+config_require_review = True
+config_allow_private_branches = True
+
+# Match Reviwed-by: string
+review_regex = "[\W\w\s]*Reviewed-by:[ ]+.+[ ]*<.+@.+>"
 
 # Match JIRA-number
 jira_regex = ".*[A-Z]+-[0-9]+.*"
@@ -26,7 +29,7 @@ def verify_review(sha1):
 	if  m == None:
 		if not invalid_commit_found:
 			print( "" )
-			print( "Commits on %s *MUST* be signed off by another developer" % args[2] )
+			print( "Commits on %s *MUST* be reviewed by another developer" % args[2] )
 			print( "For merges, only the actual merge needs review." )
 			print( "" )
 			print( "The following commits needs review:" )
@@ -50,8 +53,9 @@ def verify_jira(sha1):
 
 # Only top refs/heads/XXXXXX branches must be checked.
 # Branches like refs/heads/sgh/mytemporarybranch does not need to be checked
-if len(args[2].split("/")) > 3:
-	sys.exit(0)
+if config_allow_private_branches:
+	if len(args[2].split("/")) > 3:
+		sys.exit(0)
 
 ##
 # Now do the check in the top branches
@@ -80,14 +84,15 @@ if new_sha1 != "0000000000000000000000000000000000000000":
 		singleparent_commits = commands.getoutput("git rev-list --no-merges %s..%s" % (old_sha1, new_sha1)).split()
 
 	## Run through the commits and check commit message rules
-	for sha1 in firstparent_commits:
-		verify_review(sha1)
+	if config_require_review:
+		for sha1 in firstparent_commits:
+			verify_review(sha1)
 
 	for sha1 in singleparent_commits:
 		verify_jira(sha1)
 
 if invalid_commit_found:
-	print( "\nAll commits require must contain 'Signed-by-by: User Name <user@domain>'\n" )
+	print( "\nAll commits require must contain 'Reviewed-by: User Name <user@domain>'\n" )
 
 
 # Success
