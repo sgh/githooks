@@ -91,7 +91,7 @@ if new_sha1 != "0000000000000000000000000000000000000000":
 	for sha1 in singleparent_commits:
 		verify_jira(sha1)
 
-if invalid_commit_found:
+if invalid_commit_found and config_require_review:
 	print( "\nAll commits require must contain 'Reviewed-by: User Name <user@domain>'\n" )
 
 
